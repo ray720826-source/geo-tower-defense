@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo Tower Defense - 六角塔防</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: '微軟正黑體', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .game-header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .game-header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        #game {
+            width: 100%;
+            min-height: 600px;
+            background: linear-gradient(to bottom, #e8f4f8, #d0e8f0);
+            border-radius: 10px;
+            border: 2px solid #ccc;
+        }
+
+        .side-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .info-box {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .money {
+            color: #10b981;
+        }
+
+        .health {
+            color: #ef4444;
+        }
+
+        .wave {
+            color: #f59e0b;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+
+        .btn-tower {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-tower:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-tower:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-wave {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-wave:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-reset {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .tower-cost {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .status-message {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .tower-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .tower-item {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            border-left: 3px solid #667eea;
+        }
+
+        .tower-item .tower-pos {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .tower-item .tower-stats {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .game-over.show {
+            display: flex;
+        }
+
+        .game-over-panel {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-over-panel h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .game-over-panel p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .game-over-panel .score {
+            font-size: 32px;
+            font-weight: bold;
+            color: #10b981;
+            margin: 20px 0;
+        }
+
+        .debug-panel {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a1a;
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 2000;
+            color: white;
+            font-size: 12px;
+            min-width: 200px;
+            max-width: 300px;
+        }
+
+        .debug-panel.show {
+            display: block;
+        }
+
+        .debug-panel h4 {
+            color: #ff00ff;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ff00ff;
+            padding-bottom: 8px;
+        }
+
+        .debug-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255, 0, 255, 0.1);
+            border-radius: 4px;
+            border-left: 2px solid #ff00ff;
+        }
+
+        .debug-item button {
+            width: 100%;
+            padding: 6px;
+            margin-top: 4px;
+            background: #ff00ff;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .debug-item button:hover {
+            background: #ff33ff;
+        }
+
+        @media (max-width: 768px) {
+            .game-layout {
+                grid-template-columns: 1fr;
+            }
+
+            #game {
+                min-height: 400px;
+            }
+
+            .side-panel {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="game-header">
+            <h1>🏰 Geo Tower Defense</h1>
+            <p>在六角形網格上防守主據點，對抗來自四面八方的龍怪</p>
+        </div>
+
+        <div class="game-layout">
+            <div id="game"></div>
+
+            <div class="side-panel">
+                <div class="status-message" id="status-message" style="display:none;"></div>
+
+                <div class="panel-section">
+                    <div class="panel-title">📊 遊戲狀態</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">💰 金錢</div>
+                            <div class="stat-value money" id="money-display">5000</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">❤️ 主堡血量</div>
+                            <div class="stat-value health" id="health-display">100</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">🌊 波次</div>
+                            <div class="stat-value wave" id="wave-display">1</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">🐉 龍怪數</div>
+                            <div class="stat-value" id="enemies-display">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">🎯 操作</div>
+                    <button class="btn-tower" id="tower-btn">
+                        建造塔樓 (200💰)
+                        <div class="tower-cost">點擊六角形放置</div>
+                    </button>
+                    <button class="btn-wave" id="wave-btn">
+                        🌊 啟動波次
+                    </button>
+                    <button class="btn-reset" id="reset-btn">
+                        🔄 重置遊戲
+                    </button>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">🛡️ 塔樓列表</div>
+                    <div class="tower-list" id="tower-list">
+                        <p style="color: #999; font-size: 12px;">還沒有塔樓</p>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">⚙️ 說明</div>
+                    <p style="font-size: 12px; color: #666; line-height: 1.6;">
+                        • 點擊「建造塔樓」後點擊六角形放置<br>
+                        • 塔樓會自動攻擊經過的龍怪<br>
+                        • 擊殺龍怪可獲得金錢<br>
+                        • 龍怪到達主堡會扣血<br>
+                        • 主堡血量降至 0 遊戲結束
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over" id="game-over">
+        <div class="game-over-panel">
+            <h2 id="game-over-title">遊戲結束</h2>
+            <p>波次: <span id="final-wave">1</span></p>
+            <p>擊殺龍怪: <span id="final-kills">0</span></p>
+            <div class="score" id="final-score">總分: 0</div>
+            <button class="btn-reset" style="margin-top: 20px;">重新開始</button>
+        </div>
+    </div>
+
+    <!-- Debug Panel (按 D 鍵打開) -->
+    <div class="debug-panel" id="debug-panel">
+        <h4>🔧 Debug Panel</h4>
+        <div class="debug-item">
+            <button onclick="clearGameCache()">🗑️ 清除快取</button>
+            <div style="font-size: 10px; margin-top: 4px; color: #aaa;">清除 localStorage，重新整理頁面後重置</div>
+        </div>
+        <div class="debug-item">
+            <button onclick="addMoney(1000)">➕ +1000💰</button>
+        </div>
+        <div class="debug-item">
+            <button onclick="addHealth(50)">❤️ +50 HP</button>
+        </div>
+        <div class="debug-item">
+            <button onclick="toggleDebugPanel()">❌ 關閉</button>
+        </div>
+        <div style="font-size: 10px; color: #aaa; margin-top: 10px;">
+            按 D 鍵打開/關閉
+        </div>
+    </div>
+
+    <script>
+        // ========== 常數配置 ==========
+        const GRID_WIDTH = 25;
+        const GRID_HEIGHT = 25;
+        const HEX_SIZE = 24; // 六角形半徑
+        const TOWER_COST = 200;
+        const TOWER_DAMAGE = 10;
+        const TOWER_RANGE = 150;
+        const DRAGON_HP = 30;
+        const STRONGHOLD_HP = 100;
+        const KILL_REWARD = 100;
+
+        // ========== 遊戲狀態 ==========
+        let gameState = {
+            money: 5000,
+            strongholdHealth: STRONGHOLD_HP,
+            maxStrongholdHealth: STRONGHOLD_HP,
+            wave: 1,
+            isWaveActive: false,
+            gameOver: false,
+            towers: [],
+            enemies: [],
+            kills: 0,
+            score: 0,
+            buildMode: false
+        };
+
+        let scene;
+        let hexLayer;
+        let dragonLayer;
+        let towerLayer;
+        let selectedHexagon = null;
+
+        // ========== Phaser 配置 ==========
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game',
+            backgroundColor: '#e8f4f8',
+            scene: {
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function create() {
+            scene = this;
+            hexLayer = scene.add.layer();
+            dragonLayer = scene.add.layer();
+            towerLayer = scene.add.layer();
+
+            generateGrid();
+            generateSubwayStations();
+            drawStronghold();
+            loadGameState();
+            updateUI();
+
+            scene.input.on('pointerdown', handleGridClick);
+        }
+
+        function update() {
+            if (gameState.gameOver) return;
+
+            updateEnemies();
+            updateTowers();
+            checkGameOver();
+        }
+
+        // ========== 六角形網格生成 ==========
+        function generateGrid() {
+            const gridStartX = 50;
+            const gridStartY = 50;
+
+            for (let row = 0; row < GRID_HEIGHT; row++) {
+                for (let col = 0; col < GRID_WIDTH; col++) {
+                    const x = gridStartX + col * HEX_SIZE * 1.5;
+                    const y = gridStartY + row * HEX_SIZE * 1.5 + (col % 2) * HEX_SIZE * 0.75;
+
+                    const hex = scene.make.graphics({ x: x, y: y, add: false });
+                    hex.lineStyle(1, 0xcccccc, 1);
+                    hex.fillStyle(0xffffff, 0.8);
+
+                    drawHexagon(hex, 0, 0, HEX_SIZE);
+
+                    hex.setInteractive(
+                        new Phaser.Geom.Circle(0, 0, HEX_SIZE),
+                        Phaser.Geom.Circle.Contains
+                    );
+
+                    hex.data = { row, col, x, y };
+                    hexLayer.add(hex);
+                }
+            }
+        }
+
+        function drawHexagon(graphics, cx, cy, size) {
+            const points = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60) * Math.PI / 180;
+                points.push({
+                    x: cx + size * Math.cos(angle),
+                    y: cy + size * Math.sin(angle)
+                });
+            }
+            graphics.fillPoints(points, true);
+            graphics.strokePoints(points, true);
+        }
+
+        // ========== 捷運站（生怪點）生成 ==========
+        function generateSubwayStations() {
+            const subwayCount = 3 + gameState.wave; // 波次越高怪點越多
+            const subwayStations = [];
+
+            while (subwayStations.length < subwayCount) {
+                const row = Math.floor(Math.random() * GRID_HEIGHT);
+                const col = Math.floor(Math.random() * GRID_WIDTH);
+
+                // 避免在中心
+                if (Math.abs(row - GRID_HEIGHT / 2) < 3 || Math.abs(col - GRID_WIDTH / 2) < 3) continue;
+
+                const stationKey = `${row},${col}`;
+                if (!subwayStations.find(s => `${s.row},${s.col}` === stationKey)) {
+                    subwayStations.push({ row, col });
+                }
+            }
+
+            gameState.subwayStations = subwayStations;
+        }
+
+        // ========== 中央主據點 ==========
+        function drawStronghold() {
+            const centerRow = Math.floor(GRID_HEIGHT / 2);
+            const centerCol = Math.floor(GRID_WIDTH / 2);
+            const gridStartX = 50;
+            const gridStartY = 50;
+
+            const x = gridStartX + centerCol * HEX_SIZE * 1.5;
+            const y = gridStartY + centerRow * HEX_SIZE * 1.5 + (centerCol % 2) * HEX_SIZE * 0.75;
+
+            const stronghold = scene.add.circle(x, y, HEX_SIZE + 5, 0xff6b6b, 0.9);
+            stronghold.setStrokeStyle(3, 0xff0000);
+
+            const text = scene.add.text(x, y, '🏰', {
+                fontSize: '32px',
+                align: 'center'
+            });
+            text.setOrigin(0.5, 0.5);
+
+            gameState.stronghold = { row: centerRow, col: centerCol, x, y, graphics: stronghold };
+        }
+
+        // ========== 網格點擊 ==========
+        function handleGridClick(pointer) {
+            if (!gameState.buildMode || gameState.gameOver) return;
+
+            const hexagons = hexLayer.getChildren();
+            for (let hex of hexagons) {
+                const bounds = hex.getBounds();
+                if (Phaser.Geom.Rectangle.Contains(bounds, pointer.x, pointer.y)) {
+                    placeTower(hex.data);
+                    gameState.buildMode = false;
+                    updateUI();
+                    break;
+                }
+            }
+        }
+
+        function placeTower(hexData) {
+            if (gameState.money < TOWER_COST) {
+                showStatus('金錢不足！');
+                return;
+            }
+
+            // 檢查是否已有塔樓或是強堡位置
+            if (gameState.towers.find(t => t.row === hexData.row && t.col === hexData.col)) {
+                showStatus('該位置已有塔樓！');
+                return;
+            }
+
+            if (hexData.row === gameState.stronghold.row && hexData.col === gameState.stronghold.col) {
+                showStatus('無法在主堡上放置塔樓！');
+                return;
+            }
+
+            gameState.money -= TOWER_COST;
+
+            const tower = {
+                row: hexData.row,
+                col: hexData.col,
+                x: hexData.x,
+                y: hexData.y,
+                hp: 50,
+                damage: TOWER_DAMAGE,
+                range: TOWER_RANGE,
+                kills: 0
+            };
+
+            gameState.towers.push(tower);
+
+            // 繪製塔樓
+            const towerGraphic = scene.add.circle(hexData.x, hexData.y, 12, 0x4a90e2, 0.9);
+            towerGraphic.setStrokeStyle(2, 0x2c3e50);
+            const towerText = scene.add.text(hexData.x, hexData.y, '🗼', {
+                fontSize: '16px',
+                align: 'center'
+            });
+            towerText.setOrigin(0.5, 0.5);
+
+            tower.graphic = towerGraphic;
+            tower.text = towerText;
+
+            showStatus('塔樓已放置！');
+            saveGameState();
+            updateUI();
+        }
+
+        // ========== 波次啟動 ==========
+        function startWave() {
+            if (gameState.isWaveActive) return;
+            if (gameState.gameOver) return;
+
+            gameState.isWaveActive = true;
+            const dragonCount = 3 + gameState.wave;
+
+            for (let station of gameState.subwayStations) {
+                for (let i = 0; i < dragonCount / gameState.subwayStations.length; i++) {
+                    spawnDragon(station.row, station.col);
+                }
+            }
+
+            setTimeout(() => {
+                gameState.isWaveActive = false;
+                checkWaveComplete();
+            }, 30000); // 30 秒後波次結束
+        }
+
+        function spawnDragon(startRow, startCol) {
+            const gridStartX = 50;
+            const gridStartY = 50;
+            const x = gridStartX + startCol * HEX_SIZE * 1.5;
+            const y = gridStartY + startRow * HEX_SIZE * 1.5 + (startCol % 2) * HEX_SIZE * 0.75;
+
+            const dragon = {
+                row: startRow,
+                col: startCol,
+                x: x,
+                y: y,
+                hp: DRAGON_HP,
+                targetRow: gameState.stronghold.row,
+                targetCol: gameState.stronghold.col,
+                speed: 0.5 + Math.random() * 0.3,
+                alive: true
+            };
+
+            const dragonGraphic = scene.add.text(x, y, '🐉', {
+                fontSize: '20px',
+                align: 'center'
+            });
+            dragonGraphic.setOrigin(0.5, 0.5);
+
+            dragon.graphic = dragonGraphic;
+            gameState.enemies.push(dragon);
+        }
+
+        // ========== 敵人更新 ==========
+        function updateEnemies() {
+            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                const enemy = gameState.enemies[i];
+                if (!enemy.alive) continue;
+
+                // 計算移動方向
+                const dx = enemy.targetCol - enemy.col;
+                const dy = enemy.targetRow - enemy.row;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 0.5) {
+                    // 到達主堡
+                    gameState.strongholdHealth -= 10;
+                    enemy.alive = false;
+                    if (enemy.graphic) enemy.graphic.destroy();
+                    gameState.enemies.splice(i, 1);
+                    updateUI();
+                } else {
+                    // 移動
+                    enemy.row += (dy / distance) * enemy.speed * 0.1;
+                    enemy.col += (dx / distance) * enemy.speed * 0.1;
+
+                    const gridStartX = 50;
+                    const gridStartY = 50;
+                    enemy.x = gridStartX + enemy.col * HEX_SIZE * 1.5;
+                    enemy.y = gridStartY + enemy.row * HEX_SIZE * 1.5 + (Math.floor(enemy.col) % 2) * HEX_SIZE * 0.75;
+
+                    if (enemy.graphic) {
+                        enemy.graphic.setPosition(enemy.x, enemy.y);
+                    }
+                }
+            }
+        }
+
+        // ========== 塔樓更新 ==========
+        function updateTowers() {
+            for (let tower of gameState.towers) {
+                for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                    const enemy = gameState.enemies[i];
+                    if (!enemy.alive) continue;
+
+                    const distance = Phaser.Math.Distance.Between(tower.x, tower.y, enemy.x, enemy.y);
+
+                    if (distance < tower.range) {
+                        enemy.hp -= tower.damage;
+
+                        if (enemy.hp <= 0) {
+                            enemy.alive = false;
+                            if (enemy.graphic) enemy.graphic.destroy();
+                            gameState.enemies.splice(i, 1);
+                            gameState.money += KILL_REWARD;
+                            gameState.kills++;
+                            gameState.score += KILL_REWARD;
+                            tower.kills++;
+                        }
+
+                        updateUI();
+                        break; // 只攻擊一個敵人
+                    }
+                }
+            }
+        }
+
+        // ========== 波次完成檢查 ==========
+        function checkWaveComplete() {
+            if (gameState.enemies.length === 0 && !gameState.isWaveActive) {
+                showStatus('波次完成！準備下一波');
+                gameState.wave++;
+                generateSubwayStations();
+                setTimeout(() => {
+                    showStatus('');
+                }, 2000);
+                updateUI();
+            }
+        }
+
+        // ========== 遊戲結束檢查 ==========
+        function checkGameOver() {
+            if (gameState.strongholdHealth <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            gameState.gameOver = true;
+            showGameOverScreen();
+        }
+
+        function showGameOverScreen() {
+            const panel = document.getElementById('game-over');
+            document.getElementById('game-over-title').textContent = '遊戲結束！';
+            document.getElementById('final-wave').textContent = gameState.wave;
+            document.getElementById('final-kills').textContent = gameState.kills;
+            document.getElementById('final-score').textContent = `總分: ${gameState.score}`;
+            panel.classList.add('show');
+        }
+
+        // ========== UI 更新 ==========
+        function updateUI() {
+            document.getElementById('money-display').textContent = gameState.money;
+            document.getElementById('health-display').textContent = gameState.strongholdHealth;
+            document.getElementById('wave-display').textContent = gameState.wave;
+            document.getElementById('enemies-display').textContent = gameState.enemies.length;
+
+            const towerBtn = document.getElementById('tower-btn');
+            towerBtn.disabled = gameState.money < TOWER_COST || gameState.gameOver;
+            if (gameState.buildMode) {
+                towerBtn.style.background = '#667eea';
+                towerBtn.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.6)';
+            } else {
+                towerBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                towerBtn.style.boxShadow = 'none';
+            }
+
+            const waveBtn = document.getElementById('wave-btn');
+            waveBtn.disabled = gameState.isWaveActive || gameState.gameOver;
+
+            updateTowerList();
+        }
+
+        function updateTowerList() {
+            const list = document.getElementById('tower-list');
+            if (gameState.towers.length === 0) {
+                list.innerHTML = '<p style="color: #999; font-size: 12px;">還沒有塔樓</p>';
+                return;
+            }
+
+            let html = '';
+            for (let tower of gameState.towers) {
+                html += `
+                    <div class="tower-item">
+                        <div class="tower-pos">塔樓 #${gameState.towers.indexOf(tower) + 1}</div>
+                        <div class="tower-stats">位置: (${tower.row}, ${tower.col}) | 擊殺: ${tower.kills}</div>
+                    </div>
+                `;
+            }
+            list.innerHTML = html;
+        }
+
+        function showStatus(message) {
+            const el = document.getElementById('status-message');
+            if (message) {
+                el.textContent = message;
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        // ========== localStorage ==========
+        function saveGameState() {
+            const saveData = {
+                money: gameState.money,
+                wave: gameState.wave,
+                kills: gameState.kills,
+                score: gameState.score,
+                strongholdHealth: gameState.strongholdHealth,
+                towers: gameState.towers.map(t => ({
+                    row: t.row,
+                    col: t.col,
+                    kills: t.kills
+                }))
+            };
+            localStorage.setItem('geoTowerState', JSON.stringify(saveData));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('geoTowerState');
+            if (saved) {
+                const data = JSON.parse(saved);
+                gameState.money = data.money;
+                gameState.wave = data.wave || 1;
+                gameState.kills = data.kills || 0;
+                gameState.score = data.score || 0;
+                gameState.strongholdHealth = data.strongholdHealth || STRONGHOLD_HP;
+            }
+        }
+
+        // ========== 事件監聽 ==========
+        document.getElementById('tower-btn').addEventListener('click', () => {
+            if (gameState.buildMode) {
+                gameState.buildMode = false;
+                showStatus('');
+            } else {
+                gameState.buildMode = true;
+                showStatus('點擊六角形放置塔樓...');
+            }
+            updateUI();
+        });
+
+        document.getElementById('wave-btn').addEventListener('click', () => {
+            if (!gameState.gameOver) {
+                startWave();
+                updateUI();
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.querySelector('.game-over-panel button').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // ========== Debug Panel ==========
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debug-panel');
+            panel.classList.toggle('show');
+        }
+
+        function clearGameCache() {
+            localStorage.removeItem('geoTowerState');
+            alert('✅ 快取已清除！\n\n請重新整理頁面 (長按重新整理)');
+        }
+
+        function addMoney(amount) {
+            gameState.money += amount;
+            updateUI();
+            saveGameState();
+            alert(`💰 +${amount}`);
+        }
+
+        function addHealth(amount) {
+            gameState.strongholdHealth = Math.min(gameState.strongholdHealth + amount, gameState.maxStrongholdHealth);
+            updateUI();
+            saveGameState();
+            alert(`❤️ +${amount}`);
+        }
+
+        // 按 D 鍵打開/關閉 Debug Panel
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'd') {
+                toggleDebugPanel();
+            }
+        });
+
+        // 初始化
+        updateUI();
+    </script>
+</body>
+</html>
