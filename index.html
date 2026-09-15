@@ -893,11 +893,16 @@
             const saved = localStorage.getItem('geoTowerState');
             if (saved) {
                 const data = JSON.parse(saved);
+                // 存檔血量無效（<= 0）就視為壞檔，直接清除、改用全新遊戲
+                if (!data.strongholdHealth || data.strongholdHealth <= 0) {
+                    localStorage.removeItem('geoTowerState');
+                    return;
+                }
                 gameState.money = data.money;
                 gameState.wave = data.wave || 1;
                 gameState.kills = data.kills || 0;
                 gameState.score = data.score || 0;
-                gameState.strongholdHealth = data.strongholdHealth || STRONGHOLD_HP;
+                gameState.strongholdHealth = data.strongholdHealth;
             }
         }
 
@@ -921,10 +926,12 @@
         });
 
         document.getElementById('reset-btn').addEventListener('click', () => {
+            localStorage.removeItem('geoTowerState');
             location.reload();
         });
 
         document.querySelector('.game-over-panel button').addEventListener('click', () => {
+            localStorage.removeItem('geoTowerState');
             location.reload();
         });
 
